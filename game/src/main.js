@@ -49,25 +49,25 @@ function stage(){
  const pose=(a,x,z)=>{a.position.set(x,0,z);a.alive=true;if(a.body){a.body.visible=true;a.body.position.copy(a.position);a.body.rotation.y=a.yaw;}};
  const look=(x,y,z)=>{const dx=x-player.position.x,dz=z-player.position.z;player.yaw=Math.atan2(-dx,-dz);player.pitch=Math.atan2(y-player.eyeHeight,Math.hypot(dx,dz));player.syncCamera();};
  hud.started=true;s.round=7;s.scores.solstice=3;s.scores.umbra=2;s.phase='LIVE';s.timer=43;
+ if(shot==='buy'||shot==='end')['kestrel','dart','kestrel','longbow','osprey','kestrel','dart','kestrel','osprey'].forEach((id,i)=>weapons.give(bots.bots[i],id));
  if(shot==='fight'){
   for(const a of bots.bots)a.body.visible=false;
-  pose(player,-10,4);weapons.give(player,'kestrel');player.cash=2450;player.ads=1;look(5,1.4,-5);
+  pose(player,-10,4);weapons.give(player,'kestrel');player.cash=2450;player.ads=1;look(-2,1.4,-1);
   const kite=named('Kite'),sable=named('Sable'),juno=named('Juno');
-  pose(kite,5,-5);sable.yaw=-1.47;pose(sable,-7,-1);pose(juno,13,-3);weapons.give(sable,'dart');player.target=kite;sable.target=juno;
+  pose(kite,-2,-1);sable.yaw=-1.47;pose(sable,-5,-5);pose(juno,13,-3);weapons.give(sable,'dart');player.target=kite;sable.target=juno;
   const g=weapons.current();g.mag=17;g.reserve=75;
   const cloud=weapons.smokes[0];cloud.life=8;cloud.age=1;cloud.radius=3.5;cloud.mesh.visible=true;cloud.mesh.position.set(11,1.8,-12);cloud.mesh.scale.setScalar(3.5);
   weapons.update(0,false);camera.updateMatrixWorld(true);
-  const muzzle=weapons.models.kestrel.userData.muzzle.getWorldPosition(v(0,0,0));weapons.muzzleFlash(muzzle,v(1,0,-0.5).normalize());
-  weapons.sparks(v(5,1.35,-5),v(-1,0,0));weapons.tracer(v(-6.8,1.3,-1.3),v(13,1.3,-3));weapons.muzzleFlash(v(-6.8,1.3,-1.3),v(1,0,-0.1).normalize());weapons.updateEffects(0.025);
+  const muzzle=weapons.models.kestrel.userData.muzzle.getWorldPosition(v(0,0,0));weapons.muzzleFlash(muzzle,v(1,0,-0.5).normalize());weapons.tracer(muzzle,v(-2,1.35,-1));
+  weapons.sparks(v(-2,1.35,-1),v(-1,0,0));weapons.tracer(v(-4.4,1.3,-4.9),v(13,1.3,-3));weapons.muzzleFlash(v(-4.4,1.3,-4.9),v(1,0,-0.1).normalize());weapons.updateEffects(0.02);
   named('Odo').alive=false;hud.hit();hud.radio('Sable','Contact Court — two pushing mid');hud.event('kill',{killer:named('Rook'),victim:named('Odo'),weapon:'kestrel'});
  }else if(shot==='buy'){
   s.phase='BUY';s.timer=9;player.cash=4100;look(-25,1.5,0);hud.buyOpen=true;
-  ['kestrel','dart','kestrel','longbow'].forEach((id,i)=>weapons.give(bots.attackers[i],id));
  }
  if(shot==='plant'){
   for(const a of bots.bots)a.body.visible=false;
-  pose(player,17,-16);weapons.give(player,'longbow');look(28,9,-26);
-  const ferro=named('Ferro');pose(ferro,25,-23);ferro.state=ferro.channel='PLANT';ferro.site='A';
+  pose(player,19,-23);weapons.give(player,'longbow');player.ads=0;look(25,1.2,-23);
+  const ferro=named('Ferro');pose(ferro,25,-25);ferro.state=ferro.channel='PLANT';ferro.site='A';ferro.crouched=true;ferro.height=1.1;ferro.rig.scale.y=0.63;ferro.tag.position.y=1.5;ferro.arms.rotation.x=-0.7;
   c.carrier=ferro;c.channelActor=ferro;c.kind='PLANT';c.site='A';c.progress=1.8;c.duration=3;c.position.copy(sites.A.center);
   named('Vesper').firedUntil=3;pose(named('Vesper'),39,-16);named('Vesper').body.visible=false;hud.radio('Ferro','Planting at Tower A');
  }else if(shot==='end'){
