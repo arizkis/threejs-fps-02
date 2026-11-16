@@ -187,13 +187,14 @@ export class Weapons{
   }
   p.adsFov=l.active==='longbow'?38:61;
   for(const id in this.models)this.models[id].visible=p.alive&&l.selected===id;
-  this.view.position.set(0.22*(1-p.ads),-0.22+p.ads*0.035+Math.sin(this.time*8)*p.speed*0.001,-0.4+this.kick);
+  this.view.position.set(0.24*(1-p.ads),-0.28+p.ads*0.035+Math.sin(this.time*8)*p.speed*0.001,-0.4+this.kick);
   this.view.rotation.set(this.kick*0.6,0,Math.sin(this.time*6)*p.speed*0.001);
   this.updateEffects(dt);this.updateGrenades(dt);
  }
  buildModels(){
-  const dark=material(P.steelDark,{depthTest:false,depthWrite:false}),steel=material(P.steel,{metalness:0.6,depthTest:false,depthWrite:false});
-  const grip=material(P.copper,{depthTest:false,depthWrite:false}),accent=unlit(P.solstice,{depthTest:false,depthWrite:false});
+  this.view.scale.setScalar(0.6);
+  const dark=material(P.steelDark,{depthTest:false,depthWrite:false}),steel=material(P.concrete,{metalness:0.3,depthTest:false,depthWrite:false});
+  const grip=material(P.copper,{depthTest:false,depthWrite:false}),accent=unlit(P.orange,{depthTest:false,depthWrite:false});
   const cube=new THREE.BoxGeometry(1,1,1),barrel=new THREE.CylinderGeometry(1,1,1,8);
   for(const id in WEAPONS){
    const root=new THREE.Group(),rifle=WEAPONS[id].slot===2,len=id==='longbow'?0.72:rifle?0.5:id==='osprey'?0.34:0.25;
@@ -204,10 +205,11 @@ export class Weapons{
    part(cube,steel,0,0,-len/2,0.13,0.15,len);
    part(cube,grip,0,-0.15,-0.04,0.1,0.24,0.12,0.2);
    part(barrel,dark,0,0,-len-0.09,0.025,0.22,0.025,Math.PI/2);
-   part(cube,accent,0,0.084,-0.18,0.025,0.015,0.06);
-   part(cube,dark,0,0.11,-len+0.07,0.025,0.06,0.025);
+   part(barrel,accent,0,0,-len-0.18,0.032,0.055,0.032,Math.PI/2);
+   part(cube,accent,0,0.084,-len/2,0.11,0.018,len*0.65);
+   part(cube,accent,0,0.11,-len+0.07,0.07,0.06,0.05);
    if(rifle){
-    part(cube,dark,0,-0.17,-0.24,0.09,id==='dart'?0.25:0.18,0.16,-0.15);
+    part(cube,accent,0,-0.17,-0.24,0.09,id==='dart'?0.25:0.18,0.16,-0.15);
     part(cube,grip,0,-0.02,0.12,0.12,0.16,0.26);
     for(let i=0;i<3;i++)part(cube,dark,0,0,-len+0.1+i*0.07,0.15,0.16,0.025);
    }
