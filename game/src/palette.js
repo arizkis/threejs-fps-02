@@ -3,23 +3,23 @@ import * as THREE from 'three';
 // Shared by the world, operators, effects and minimap. Keep team hues distinct
 // from the warm architecture; these helpers run during construction, not ticks.
 export const PALETTE = Object.freeze({
-  sand: 0xc58b61,
-  sandLight: 0xe8b883,
-  terracotta: 0xb86245,
-  wallLight: 0xd79770,
-  concrete: 0xb4b5a4,
+  sand: 0xd39245,
+  sandLight: 0xf4ba70,
+  terracotta: 0xbb5532,
+  wallLight: 0xde8550,
+  concrete: 0xc29b67,
   steel: 0x31434b,
   steelDark: 0x192c36,
   copper: 0xb16b45,
   shadow: 0x276578,
   mirror: 0xf4f0d9,
-  glint: 0xffdba1,
+  glint: 0xffcf81,
   orange: 0xf5a05d,
-  sun: 0xff813e,
-  skyTop: 0x203f62,
-  skyMid: 0x81657c,
-  skyHorizon: 0xe58c59,
-  fog: 0xad8376,
+  sun: 0xff8833,
+  skyTop: 0x28204f,
+  skyMid: 0x6a3d70,
+  skyHorizon: 0xf3a04d,
+  fog: 0xc48952,
   solstice: 0x65dcc9,
   umbra: 0xfa737a,
   ink: 0x10232c,
@@ -70,7 +70,7 @@ export function canvasTexture(width, height, paint, repeatX = 1, repeatY = 1) {
 export function sandTexture(seed = 41, repeat = 12) {
   const rand = random(seed);
   return canvasTexture(128, 128, (ctx, w, h) => {
-    ctx.fillStyle = '#e7caa4';
+    ctx.fillStyle = '#f0c58b';
     ctx.fillRect(0, 0, w, h);
     for (let i = 0; i < 700; i++) {
       ctx.fillStyle = i % 3 ? '#906e4925' : '#fff6dc65';
@@ -92,7 +92,7 @@ export function sandTexture(seed = 41, repeat = 12) {
 export function concreteTexture(seed = 19, repeat = 1) {
   const rand = random(seed);
   return canvasTexture(256, 128, (ctx, w, h) => {
-    ctx.fillStyle = '#e2dfd0';
+    ctx.fillStyle = '#e6cda8';
     ctx.fillRect(0, 0, w, h);
     for (let i = 0; i < 850; i++) {
       ctx.fillStyle = i % 2 ? '#fffbea30' : '#67727120';
@@ -164,9 +164,9 @@ export function skyTexture() {
   return canvasTexture(16, 256, (ctx, w, h) => {
     const gradient = ctx.createLinearGradient(0, 0, 0, h);
     gradient.addColorStop(0, cssColor(PALETTE.skyTop));
-    gradient.addColorStop(0.52, cssColor(PALETTE.skyMid));
-    gradient.addColorStop(0.88, cssColor(PALETTE.skyHorizon));
-    gradient.addColorStop(1, '#ffc087');
+    gradient.addColorStop(0.28, cssColor(PALETTE.skyMid));
+    gradient.addColorStop(0.5, cssColor(PALETTE.skyHorizon));
+    gradient.addColorStop(1, '#f3a04d');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, w, h);
   });
