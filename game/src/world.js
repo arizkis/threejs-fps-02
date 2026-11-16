@@ -215,13 +215,13 @@ export function createWorld(seed = 73021) {
   const scene = new THREE.Scene(), yard = new THREE.Group(), m = createMaterials();
   yard.name = 'Helioworks Yard'; scene.add(yard);
   scene.background = new THREE.Color(P.skyHorizon);
-  scene.fog = new THREE.Fog(P.fog, 62, 165);
-  const fill = new THREE.HemisphereLight(0x9ecbd9, 0x8b4b37, 1.65);
-  const sun = new THREE.DirectionalLight(P.glint, 2.5);
-  sun.position.set(-38, 48, -52); sun.castShadow = false;
+  scene.fog = new THREE.Fog(P.fog, 85, 200);
+  const fill = new THREE.HemisphereLight(0x8b9ac7, 0x9a4a20, 0.85);
+  const sun = new THREE.DirectionalLight(P.glint, 2.2);
+  sun.position.set(-38, 22, -52); sun.castShadow = false;
   scene.add(fill, sun);
   const dome = new THREE.Mesh(new THREE.SphereGeometry(205, 32, 16),
-    unlit(0xffffff, { map: skyTexture(), side: THREE.BackSide, fog: false, depthWrite: false }));
+    unlit(0xffffff, { map: skyTexture(), side: THREE.BackSide, fog: false, depthWrite: false, toneMapped: false }));
   dome.name = 'Dusk sky'; dome.renderOrder = -10; scene.add(dome);
   const solarDisc = new THREE.Mesh(new THREE.SphereGeometry(7, 16, 10), m.sun);
   solarDisc.position.set(-105, 32, -135); scene.add(solarDisc);
@@ -250,7 +250,7 @@ export function createWorld(seed = 73021) {
   // Ground paint and trim contained within a solid hull are visual only.
   let paintLayer = 0;
   function paint(x, z, w, d, mat, y = 0.018) { return add(plane, mat, x, y + paintLayer++ * 0.00001, z, w, d, 1, null, -Math.PI / 2); }
-  const road = material(0x746e62), line = unlit(P.sandLight), shade = unlit(P.ink, { transparent: true, opacity: 0.16, depthWrite: false });
+  const road = material(0x8f6846), line = unlit(P.sandLight), shade = unlit(P.ink, { transparent: true, opacity: 0.16, depthWrite: false });
   function shadow(x, z, w, d) { paint(x + 0.6, z + 0.7, w, d, shade, 0.024); }
   function sign(text, x, y, z, w, h, ry = 0, options = {}, post = false) {
     const mat = unlit(0xffffff, { map: signTexture(text, options), side: THREE.DoubleSide });
