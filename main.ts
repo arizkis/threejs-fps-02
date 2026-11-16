@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-threejs.ts';
 
 const root=fileURLToPath(new URL('.',import.meta.url));
-const out=resolve(process.env.MAKEFUN_OUTPUT_DIR||join(root,'output'));
+const out=process.env.MAKEFUN_OUTPUT_DIR??'/output';
 mkdirSync(out,{recursive:true});
 cpSync(join(root,'game'),join(out,'game'),{recursive:true});
 mkdirSync(join(out,'screenshots'),{recursive:true});
