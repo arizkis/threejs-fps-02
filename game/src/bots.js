@@ -34,7 +34,8 @@ export class Bot{
   for(const x of [-0.34,0.34])this.arms.attach(box(m,x,1.1,-0.1,0.16,0.45,0.18));
   this.arms.attach(box(s.mats.dark,0.23,1.18,-0.38,0.12,0.13,0.64));
   const map=signTexture(this.name,{width:256,height:64,accent:this.team==='solstice'?P.orange:P.solstice});
-  this.tag=new THREE.Sprite(new THREE.SpriteMaterial({map,depthWrite:false}));this.tag.scale.set(1.9,0.48,1);this.tag.position.y=2.15;root.add(this.tag);root.position.copy(this.position);
+  this.tag=new THREE.Sprite(new THREE.SpriteMaterial({map,depthWrite:false}));this.tag.scale.set(1.6,0.4,1);this.tag.position.y=2.15;root.add(this.tag);root.position.copy(this.position);
+  this.tag.onBeforeRender=(_,__,camera)=>{const k=Math.min(1,this.tag.getWorldPosition(this.eye).distanceTo(camera.position)*0.23/camera.projectionMatrix.elements[5]);this.tag.scale.set(1.6*k,0.4*k,1);this.tag.updateMatrixWorld();};
  }
  getEye(out){out.copy(this.position);out.y+=this.height-0.15;return out;}
  shake(){} // Damage uses the human armour rule.
