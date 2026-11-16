@@ -24,22 +24,28 @@ export class Bot{
   this.buildBody();system.weapons.ensure(this);
  }
  buildBody(){
-  const s=this.system,m=s.mats[this.team],root=new THREE.Group(),rig=new THREE.Group();
+  const s=this.system,m=s.mats[this.team].clone(),root=new THREE.Group(),rig=new THREE.Group();
+  this.hitMats=[m,s.mats.dark.clone(),s.mats.skin.clone()];this.hitGlow=0;
   root.add(rig);s.scene.add(root);this.body=root;this.rig=rig;
-  const box=(mat,x,y,z,w,h,d)=>{const mesh=new THREE.Mesh(s.cube,mat);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);rig.add(mesh);return mesh;};
+  const box=(mat,x,y,z,w,h,d)=>{if(mat===s.mats.dark)mat=this.hitMats[1];if(mat===s.mats.skin)mat=this.hitMats[2];const mesh=new THREE.Mesh(s.cube,mat);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);rig.add(mesh);return mesh;};
   box(m,0,1.05,0,0.56,0.67,0.32);box(s.mats.dark,0,1.04,-0.18,0.43,0.45,0.08);
   this.head=box(s.mats.skin,0,1.57,0,0.32,0.34,0.32);box(m,0,1.73,0,0.35,0.12,0.35);
   this.legs=[box(s.mats.dark,-0.15,0.37,0,0.21,0.74,0.24),box(s.mats.dark,0.15,0.37,0,0.21,0.74,0.24)];
   this.arms=new THREE.Group();this.arms.position.y=1.25;rig.add(this.arms);
   for(const x of [-0.34,0.34])this.arms.attach(box(m,x,1.1,-0.1,0.16,0.45,0.18));
   this.arms.attach(box(s.mats.dark,0.23,1.18,-0.38,0.12,0.13,0.64));
+  this.muzzle=new THREE.Object3D();this.muzzle.position.set(0.23,-0.07,-0.72);this.arms.add(this.muzzle);
   const map=signTexture(this.name,{width:256,height:64,accent:this.team==='solstice'?P.orange:P.solstice});
   this.tag=new THREE.Sprite(new THREE.SpriteMaterial({map,depthWrite:false}));this.tag.scale.set(1.6,0.4,1);this.tag.position.y=2.15;root.add(this.tag);root.position.copy(this.position);
   this.tag.onBeforeRender=(_,__,camera)=>{const k=Math.min(1,this.tag.getWorldPosition(this.eye).distanceTo(camera.position)*0.23/camera.projectionMatrix.elements[5]);this.tag.scale.set(1.6*k,0.4*k,1);this.tag.updateMatrixWorld();};
  }
  getEye(out){out.copy(this.position);out.y+=this.height-0.15;return out;}
  shake(){} // Damage uses the human armour rule.
- takeDamage(amount,source=null,part='torso'){return Player.prototype.takeDamage.call(this,amount,source,part);}
+ takeDamage(amount,source=null,part='torso'){
+  const dealt=Player.prototype.takeDamage.call(this,amount,source,part);
+  if(dealt>0){this.hitGlow=0.12;this.updateHit(0);}return dealt;
+ }
+ updateHit(dt){this.hitGlow=Math.max(0,this.hitGlow-dt);for(const m of this.hitMats){m.emissive.setHex(P.tracerGold);m.emissiveIntensity=this.hitGlow/0.12*0.8;}}
  onDeath(self,source,part){
   this.stopChannel();this.state='DOWN';this.target=null;this.tag.visible=false;
   this.system.onKill?.(source,this,part==='head');
@@ -47,6 +53,7 @@ export class Bot{
  respawn(){
   this.stopChannel();this.position.copy(this.spawn);this.velocity.set(0,0,0);
   this.health=100;this.alive=true;this.height=1.75;this.grounded=true;this.flash=this.ads=this.fall=this.stride=0;
+  this.updateHit(1);
   this.target=null;this.crouched=false;this.path.length=0;this.body.position.copy(this.position);this.body.rotation.set(0,0,0);this.tag.visible=true;
  }
  go(position,state='ROUTE'){

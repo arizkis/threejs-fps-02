@@ -10,6 +10,10 @@ export class HUD{
   this.rows=new Map([...document.querySelectorAll('#scoreboard tbody tr')].map(n=>[n.dataset.player,n]));
   this.loads=[...this.e['team-loadout'].children];this.slots=[...this.e['weapon-slots'].children];
   this.ctx=this.e.minimap.getContext('2d');
+  this.fightCover=new URLSearchParams(location.search).get('shot')==='fight';
+  // Generate a one-pixel gold ICO locally before the browser requests a favicon.
+  const ico=new Uint8Array(70);ico.set([0,0,1,0,1,0,1,1,0,0,1,0,32,0,48,0,0,0,22]);ico.set([40,0,0,0,1,0,0,0,2,0,0,0,1,0,32],22);ico.set([129,207,255,255],62);
+  const icon=document.createElement('link');icon.rel='icon';icon.href=URL.createObjectURL(new Blob([ico],{type:'image/x-icon'}));document.head.append(icon);
   this.e['start-button'].onclick=()=>{if(!this.started){this.started=true;this.onStart?.();}void this.p.input.lock();};
   this.e['buy-close'].onclick=()=>this.openBuy(false);
   this.e['buy-grid'].onclick=e=>{const card=e.target.closest('[data-buy]');if(card){this.selected=card.dataset.buy;rounds.buy(this.p,this.selected);}};
@@ -42,6 +46,7 @@ export class HUD{
   this.e['radio-log'].append(li);this.log.push({li,until:this.r.state.time+9});if(this.log.length>3)this.log.shift().li.remove();
  }
  update(){
+  if(this.fightCover){this.fightCover=false;this.stageFight();}
   const t=this.t,h=this.h,e=this.e;
   const s=this.r.snapshot,p=this.p,c=s.charge,l=p.loadout,g=this.w.current(p),utility=UTILITIES[l.selected],end=s.phase==='END';
   if(s.phase!=='BUY')this.buyOpen=false;
@@ -66,6 +71,18 @@ export class HUD{
   h('scoreboard',this.tab||end);if(this.tab||end)this.board(s);
   for(const list of [this.feed,this.log])for(let i=list.length-1;i>=0;i--){const n=list[i];n.li.style.opacity=Math.min(1,(n.until-s.time)/2);if(n.until<=s.time){n.li.remove();list.splice(i,1);}}
   if(this.buyOpen)this.buy(s);if(s.time>=this.mapAt){this.mapAt=s.time+0.1;this.map(s);}
+ }
+ stageFight(){
+  // Re-stage the existing frozen cover with real shots through the combat path.
+  const w=this.w,p=this.p,[sable,kite,juno]=['Sable','Kite','Juno'].map(n=>this.r.state.actors.find(a=>a.name===n));
+  w.resetEffects();p.ads=0;p.syncCamera();w.update(0,false);
+  const shoot=(a,b)=>{
+   const d=b.position.clone();d.y+=1.1;d.sub(w.eye(a,a.position.clone())).normalize();
+   if(a.body){a.yaw=Math.atan2(-d.x,-d.z);a.body.rotation.y=a.yaw;a.arms.rotation.x=Math.atan2(d.y,Math.hypot(d.x,d.z));}
+   w.fire(a,d);
+  };
+  const far={position:kite.position.clone().set(45,2,35)};
+  shoot(p,kite);shoot(sable,far);w.update(0.18,false);shoot(p,kite);shoot(sable,far);shoot(juno,sable);w.updateEffects(0.025);
  }
  buy(s){
   const p=this.p,l=p.loadout;this.t('buy-cash',money(p.cash));this.t('buy-timer',clock(s.timer));this.t('buy-feedback',s.notice);

@@ -14,6 +14,8 @@ export const PALETTE = Object.freeze({
   shadow: 0x276578,
   mirror: 0xf4f0d9,
   glint: 0xffcf81,
+  tracerGold: 0xfff1bc,
+  tracerRed: 0xff5426,
   orange: 0xf5a05d,
   sun: 0xff8833,
   skyTop: 0x28204f,

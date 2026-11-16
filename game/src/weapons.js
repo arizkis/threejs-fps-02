@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import{PALETTE as P,material,unlit}from './palette.js';
+import{PALETTE as P,material,unlit,canvasTexture}from './palette.js';
 import{segmentAABB,traceSegment,lineOfSight as worldSight}from './world.js';
 export const WEAPONS ={};
 const FIELDS='name price damage mag reserve interval reload auto spread move recoil bloom radius slot'.split(' ');
@@ -17,7 +17,7 @@ export const UTILITIES ={
  flare:{name:'Flare',price:200,fuse:1.25,color:P.white},
  veil:{name:'Veil smoke',price:300,fuse:1.5,color:P.shadow},
 };
-const EMPTY=[],UP=new THREE.Vector3(0,1,0),Z=new THREE.Vector3(0,0,1);
+const EMPTY=[],UP=new THREE.Vector3(0,1,0);
 const KEYS=[['Digit1','sidearm'],['Digit2','primary'],['Digit4','shard'],['Digit5','flare'],['Digit6','veil']];
 function gun(id){return{id,def:WEAPONS[id],mag:WEAPONS[id].mag,reserve:WEAPONS[id].reserve,nextShot:0,reloadUntil:0,bloom:0};}
 export function createLoadout(){
@@ -143,18 +143,21 @@ export class Weapons{
    this.damage(victim,g.def.damage*(part==='head'?4:part==='limb'?0.75:1),a,part,g.id);
    n.copy(d).negate();
   }
-  if(victim||wall!==Infinity)this.sparks(e,n);
+  const color=a.team==='umbra'?P.tracerRed:P.tracerGold;
+  if(victim||wall!==Infinity)this.sparks(e,n,color);
   if(a===this.player){
    this.models[g.id].userData.muzzle.getWorldPosition(m);
    a.recoil(g.def.recoil*(a.crouched?0.75:1),(this.rand()-0.5)*g.def.recoil*0.4);
    this.kick=Math.min(0.09,this.kick+0.035);
-  }else m.copy(o).addScaledVector(d,0.45);
-  this.tracer(m,e);this.muzzleFlash(m,d);
+  }else if(a.muzzle){a.muzzle.updateWorldMatrix(true,false);a.muzzle.getWorldPosition(m);}
+  else m.copy(o).addScaledVector(d,0.45);
+  this.tracer(m,e,color);this.muzzleFlash(m,d,color);
   g.bloom=Math.min(0.065,g.bloom+g.def.bloom);
   this.sound('shot',a,o,g.def.radius,g.id);return true;
  }
  updateLoadout(a,dt){
   if(a!==this.player)a.flash=Math.max(0,(a.flash||0)-dt);
+  a.updateHit?.(dt);
   const l=this.ensure(a);
   for(const id in l.guns){
    const g=l.guns[id];g.bloom*=Math.exp(-(a.crouched?8:5)*dt);
@@ -222,6 +225,12 @@ export class Weapons{
  }
  buildPools(){
   const particle=new THREE.IcosahedronGeometry(1,0);
+  const glow=color=>unlit(color,{transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false,side:THREE.DoubleSide});
+  const shape=new THREE.Shape();
+  for(let i=0;i<16;i++){const a=i*Math.PI/8,r=i%2?0.12:1;shape[i?'lineTo':'moveTo'](Math.cos(a)*r,Math.sin(a)*r);}shape.closePath();
+  const star=new THREE.ShapeGeometry(shape),halo=canvasTexture(32,32,(c)=>{
+   const g=c.createRadialGradient(16,16,0,16,16,16);g.addColorStop(0,'#ffffff');g.addColorStop(0.25,'#ffffff99');g.addColorStop(1,'#ffffff00');c.fillStyle=g;c.fillRect(0,0,32,32);
+  });
   const pool=(count,geometry,mat,kind=0)=>{
    const list=[];
    for(let i=0;i<count;i++){
@@ -229,43 +238,73 @@ export class Weapons{
     if(kind===3){
      const g=new THREE.BufferGeometry();
      g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3).setUsage(THREE.DynamicDrawUsage));
-     mesh=new THREE.Line(g,mat);mesh.frustumCulled=false;
-    }else mesh=new THREE.Mesh(geometry,kind===2?mat.clone():mat);
+     mesh=new THREE.Line(g,mat.clone());mesh.frustumCulled=false;
+     mesh.add(new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,6),glow(P.tracerGold)));
+    }else mesh=new THREE.Mesh(geometry,mat.clone());
+    if(kind===4||kind===5){
+     const core=new THREE.Mesh(star,glow(P.white));core.scale.setScalar(0.4);mesh.add(core);
+     const haze=new THREE.Sprite(new THREE.SpriteMaterial({map:halo,color:P.glint,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));haze.scale.set(3,3,1);mesh.add(haze);
+    }
     mesh.visible=false;this.effects.add(mesh);
     list.push({mesh,life:0,age:0,velocity:new THREE.Vector3(),previous:new THREE.Vector3(),kind,radius:0,owner:null,type:''});
    }
    return list;
   };
-  this.tracers=pool(28,null,new THREE.LineBasicMaterial({color:P.glint,transparent:true,opacity:0.85}),3);
-  this.flashes=pool(10,particle,unlit(P.glint,{toneMapped:false}));
-  this.sparkPool=pool(40,particle,unlit(P.orange,{toneMapped:false}),1);
+  this.tracers=pool(32,null,new THREE.LineBasicMaterial({color:P.tracerGold,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}),3);
+  this.flashes=pool(10,star,glow(P.tracerGold),4);
+  this.impacts=pool(20,star,glow(P.tracerGold),5);
+  this.puffs=pool(128,new THREE.PlaneGeometry(1,1),unlit(P.white,{map:halo,transparent:true,depthWrite:false}),6);
+  this.lights=Array.from({length:4},()=>{const light=new THREE.PointLight(P.glint,0,5,2);this.effects.add(light);return{light,life:0};});
+  this.sparkPool=pool(60,particle,glow(P.orange),1);
   this.blasts=pool(4,particle,unlit(P.orange,{transparent:true,opacity:0.6,depthWrite:false,toneMapped:false}),2);
-  this.particles=[...this.flashes,...this.sparkPool,...this.blasts];
+  this.particles=[...this.flashes,...this.impacts,...this.puffs,...this.sparkPool,...this.blasts];
   this.grenadeMats={};for(const id in UTILITIES)this.grenadeMats[id]=material(UTILITIES[id].color,{metalness:0.4});
   this.grenades=pool(20,new THREE.IcosahedronGeometry(0.11,1),this.grenadeMats.shard);
   this.smokes=pool(10,new THREE.SphereGeometry(1,12,8),unlit(P.smoke,{transparent:true,opacity:0.86,depthWrite:false}));
   this._pools=[this.tracers,this.particles,this.grenades,this.smokes];
-  this.ti=this.fi=this.si=this.bi=0;
+  this.ti=this.fi=this.si=this.bi=this.ii=this.pi=0;
  }
- tracer(a,b){
+ tracer(a,b,color=P.tracerGold){
   const t=this.tracers[this.ti++%this.tracers.length],attr=t.mesh.geometry.attributes.position;
-  attr.setXYZ(0,a.x,a.y,a.z);attr.setXYZ(1,b.x,b.y,b.z);attr.needsUpdate=true;t.life=0.065;t.mesh.visible=true;
+  attr.setXYZ(0,a.x,a.y,a.z);attr.setXYZ(1,b.x,b.y,b.z);attr.needsUpdate=true;t.life=0.15;t.mesh.visible=true;
+  t.mesh.material.color.setHex(color);t.mesh.material.opacity=1;
+  const glow=t.mesh.children[0];glow.material.color.setHex(color);glow.material.opacity=0.4;
+  glow.position.copy(a).lerp(b,0.5);glow.scale.set(0.025,a.distanceTo(b),0.025);
+  glow.quaternion.setFromUnitVectors(UP,this._right.copy(b).sub(a).normalize());
  }
- muzzleFlash(position,dir){
-  const p=this.flashes[this.fi++%this.flashes.length];p.life=0.045;p.mesh.visible=true;
-  p.mesh.position.copy(position);p.mesh.quaternion.setFromUnitVectors(Z,dir);p.mesh.scale.set(0.055,0.055,0.23);
+ star(p,position,size,life,color){
+  p.life=p.duration=life;p.mesh.visible=true;p.mesh.position.copy(position);p.mesh.scale.setScalar(size);
+  p.mesh.quaternion.copy(this.camera.quaternion);p.mesh.material.color.setHex(color);p.mesh.material.opacity=1;
+  for(const child of p.mesh.children)child.material.opacity=child.isSprite?0.45:1;
  }
- sparks(position,normal){
+ muzzleFlash(position,dir,color=P.tracerGold){
+  const pulse=this.lights[this.fi%this.lights.length],p=this.flashes[this.fi++%this.flashes.length];
+  this.star(p,position,0.16,0.075,color);p.mesh.renderOrder=21;
+  pulse.life=0.075;pulse.light.position.copy(position);pulse.light.color.setHex(color);pulse.light.intensity=7;
+  this.puff(position,0.25,0.5);
+ }
+ puff(position,size,life){
+  const p=this.puffs[this.pi++%this.puffs.length];p.life=p.duration=life;p.age=0;p.radius=size;p.mesh.visible=true;
+  p.mesh.position.copy(position);p.mesh.quaternion.copy(this.camera.quaternion);p.mesh.scale.setScalar(size);p.mesh.material.opacity=0.6;
+ }
+ sparks(position,normal,color=P.tracerGold){
+  const burst=this.impacts[this.ii++%this.impacts.length];this.star(burst,position,0.65,0.12,color);
+  burst.mesh.position.addScaledVector(normal,0.025);this.puff(burst.mesh.position,0.35,0.35);
   for(let i=0;i<5;i++){
-   const p=this.sparkPool[this.si++%this.sparkPool.length];p.life=0.12+this.rand()*0.12;p.mesh.visible=true;
+   const p=this.sparkPool[this.si++%this.sparkPool.length];p.life=p.duration=0.12+this.rand()*0.12;p.mesh.visible=true;p.mesh.material.opacity=1;p.mesh.material.color.setHex(color);
    p.mesh.position.copy(position);p.mesh.scale.setScalar(0.025);
    p.velocity.set((this.rand()-0.5)*3,this.rand()*3,(this.rand()-0.5)*3).addScaledVector(normal,2);
   }
  }
  updateEffects(dt){
-  for(const t of this.tracers)if(t.life>0){t.life-=dt;t.mesh.visible=t.life>0;}
+  for(const t of this.tracers)if(t.life>0){t.life-=dt;t.mesh.visible=t.life>0;t.mesh.material.opacity=Math.max(0,t.life/0.15);t.mesh.children[0].material.opacity=t.mesh.material.opacity*0.4;}
+  for(const p of this.lights){p.life=Math.max(0,p.life-dt);p.light.intensity=7*p.life/0.075;}
   for(const p of this.particles)if(p.life>0){
    p.life-=dt;p.mesh.visible=p.life>0;
+   const fade=Math.max(0,p.life/p.duration);
+   if(p.kind!==2)p.mesh.material.opacity=fade*(p.kind===6?0.6:1);
+   if(p.kind>=4){p.mesh.quaternion.copy(this.camera.quaternion);for(const c of p.mesh.children)c.material.opacity=fade*(c.isSprite?0.45:1);}
+   if(p.kind===6){p.age+=dt;p.mesh.scale.setScalar(p.radius+p.age*1.5);p.mesh.position.y+=dt*0.9;}
    if(p.kind===1){p.velocity.y-=9*dt;p.mesh.position.addScaledVector(p.velocity,dt);}
    if(p.kind===2){p.mesh.scale.setScalar((1-p.life/0.35)*p.radius+0.2);p.mesh.material.opacity=Math.max(0,p.life/0.35)*0.6;}
   }
@@ -340,5 +379,6 @@ export class Weapons{
  lineOfSight(a,b){return worldSight(a,b)&&!this.blocksSight(a,b);}
  resetEffects(){
   for(const pool of this._pools)for(const p of pool){p.life=0;p.mesh.visible=false;}
+  for(const p of this.lights){p.life=0;p.light.intensity=0;}
  }
 }
